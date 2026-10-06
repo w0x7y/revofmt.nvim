@@ -11,12 +11,31 @@ Register `:RevoFmtInstall` and `:checkhealth revofmt`. Keep save formatting off 
 ## Implementation plan
 
 - [x] Create and clone the remote repository, retain MIT attribution, adapt the existing 32-test suite to the standalone root.
-- [ ] Add failing installation tests for checksum rejection, download errors, idempotence, unsupported platforms, executable selection, asynchronous completion and command registration.
-- [ ] Implement `lua/revofmt/release.lua`, `binary.lua`, `health.lua` and public install/resolve entry points without changing codec or transport.
-- [ ] Write quick-start README and help, record pinned binary provenance, add standalone CI and release verification instructions.
-- [ ] Verify the source formatter with pinned Zig, publish its binary plus checksum and license notices, then test a real download and unsaved-buffer formatting in an isolated Neovim data directory.
-- [ ] Commit and push the standalone repository; update and verify the current formatter guides.
+- [x] Add failing installation tests for checksum rejection, download errors, idempotence, unsupported platforms, executable selection, asynchronous completion and command registration.
+- [x] Implement `lua/revofmt/release.lua`, `binary.lua`, `health.lua` and public install/resolve entry points without changing codec or transport.
+- [x] Write quick-start README and help, record pinned binary provenance, add standalone CI and release verification instructions.
+- [x] Verify the source formatter with pinned Zig, publish its binary plus checksum and license notices, then test a real download and unsaved-buffer formatting in an isolated Neovim data directory.
+- [x] Commit and push the standalone repository; update and verify the current formatter guides.
 
 ## Verification
 
 Run `REVOFMT_BIN=/absolute/path/to/revofmt nvim --headless -u NONE -i NONE -n -l tests/run.lua` and `tests/install.lua` from this repository. Installer tests replace only the network process with a controlled executable and keep filesystem publication, hashing and formatter execution real. Use a separate data directory so no personal editor settings or binaries change. Verify checksums, syntax preservation and idempotence through the real CLI before publishing the release.
+
+## Verified outcome
+
+The public repository and formatter release are live. All 32 adapter tests and
+13 installation tests passed on Neovim 0.10.4 and 0.12.5, locally and in
+[GitHub CI](https://github.com/w0x7y/revofmt.nvim/actions/runs/37486921926).
+A fresh lazy.nvim install cloned the remote plugin, executed its documented
+build hook, downloaded and verified the real release, recognized a `.rv` buffer
+and formatted unsaved source. All checks used isolated editor data.
+
+Minimum-version testing found two issues before release: Neovim 0.10's
+`uv.walk` crashes on native editor handles, so tests now track the actual
+transport allocations; its Vim `sha256()` rejects NUL-bearing Lua strings, so
+installation hashes files through `sha256sum` with an argument array. The codec
+and formatting transport remain byte-identical to the original adapter.
+
+A separate code review approved the implementation after correcting a success
+return tuple. The formatter's full Rust, Zig, checksum and editor verification
+passed before its pinned binary was published.
