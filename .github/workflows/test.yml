@@ -1,0 +1,29 @@
+name: Neovim tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        neovim: [v0.10.4, v0.12.5]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Neovim
+        env:
+          NEOVIM_VERSION: ${{ matrix.neovim }}
+        run: |
+          curl -fL "https://github.com/neovim/neovim/releases/download/$NEOVIM_VERSION/nvim-linux-x86_64.tar.gz" -o "$RUNNER_TEMP/nvim.tar.gz"
+          tar -xzf "$RUNNER_TEMP/nvim.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/nvim-linux-x86_64/bin" >> "$GITHUB_PATH"
+      - name: Download and verify pinned formatter
+        run: |
+          mkdir -p "$RUNNER_TEMP/revofmt"
+          nvim --headless -u NONE -i NONE -n -l tests/download.lua "$RUNNER_TEMP/revofmt"
+          echo "REVOFMT_BIN=$RUNNER_TEMP/revofmt/revofmt" >> "$GITHUB_ENV"
+      - name: Verify adapter and installation
+        run: scripts/verify

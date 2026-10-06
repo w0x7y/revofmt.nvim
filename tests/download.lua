@@ -1,0 +1,21 @@
+-- CI bootstrap and real-network smoke check; no personal settings are loaded.
+local root = vim.fn.getcwd()
+vim.opt.runtimepath:prepend(root)
+local binary = require('revofmt.binary')
+local ok, err = binary.install({ async = false })
+assert(ok, err)
+local destination = assert(arg[1], 'provide a destination directory') .. '/revofmt'
+assert(vim.uv.fs_copyfile(binary.path(), destination))
+assert(vim.uv.fs_chmod(destination, 448))
+local fmt = require('revofmt')
+fmt.setup()
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'let x=1' })
+vim.bo.endofline = false
+assert(fmt.format({ async = false }))
+assert(vim.deep_equal(vim.api.nvim_buf_get_lines(0, 0, -1, false), { 'let x = 1' }))
+assert(vim.bo.endofline)
+local tick = vim.api.nvim_buf_get_changedtick(0)
+assert(fmt.format({ async = false }))
+assert(vim.api.nvim_buf_get_changedtick(0) == tick)
+print('Verified real download, unsaved-buffer formatting and idempotence')
+vim.cmd('qa!')

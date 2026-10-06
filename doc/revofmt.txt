@@ -1,0 +1,51 @@
+*revofmt.txt*             Revo formatting for Neovim
+
+INSTALLATION                                          *revofmt-install*
+
+Install w0x7y/revofmt.nvim with a plugin manager. Run :RevoFmtInstall
+once to download the pinned formatter. Linux x86_64 GNU with glibc >=2.34
+is the current binary platform. Installation requires curl and sha256sum; formatting does not.
+
+COMMANDS                                              *revofmt-commands*
+
+:RevoFormat          Format the entire unsaved buffer asynchronously.
+:RevoFmtInstall      Download and verify the pinned binary, or reuse it.
+:RevoFmtInstall!     Download again, preserving the old binary on failure.
+:checkhealth revofmt Show executable selection and run a formatting smoke check.
+
+CONFIGURATION                                         *revofmt-setup*
+
+Defaults: >lua
+    require('revofmt').setup({
+      indent_width = 2,
+      line_width = 80,
+      timeout_ms = 5000,
+      format_on_save = false,
+    })
+<
+An optional executable setting overrides managed installation and PATH lookup.
+It is a command name or literal executable path, never a shell command.
+
+Save formatting is opt-in. CLI failures leave the buffer unchanged. Keep
+independent whitespace-cleanup hooks disabled for Revo opaque literals/comments.
+Only nonbinary UTF-8 Unix or DOS buffers without a BOM are supported. NUL output
+and output the buffer cannot represent exactly are rejected. Source admission,
+cancellation, deadlines and changed-buffer guards apply before publishing edits.
+
+LUA API                                               *revofmt-api*
+
+require('revofmt').format({ bufnr = 0, async = false })
+    Returns success, error for synchronous formatting. Defaults to asynchronous
+    formatting, returning whether the request started.
+
+require('revofmt').install({ async = false })
+    Returns success, error. Default installation is asynchronous. Optional
+    on_done(success, error) receives completion; force=true downloads again.
+
+require('revofmt').executable()
+    Returns the selected executable, or nil and installation guidance.
+
+Managed binaries live at stdpath('data')/revofmt/<formatter-version>/revofmt.
+Remove the version directory to uninstall. Plugin removal does not delete it.
+
+ vim:tw=78:ts=8:noet:ft=help:norl:
