@@ -2,21 +2,35 @@
 
 # `revofmt.nvim`, revo formatting in neovim
 
-open a `.rv` or `.revo` file, run `:RevoFormat`, get formatted code.
-it works on your unsaved buffer. format-on-save is off until you ask for it.
+[revo](https://github.com/if-not-nil/revo)
+| [formatter](https://github.com/w0x7y/revo-formatter)
+| [install](#install)
+| [options](#options)
+| [commands](#commands)
+| [credits](#credits)
 
-[install](#install-with-lazynvim) | [commands](#commands) | [settings](#settings) | [formatter](https://github.com/w0x7y/revo-formatter)
+revo formatting in neovim. open a `.rv` or `.revo` file, run `:RevoFormat`.
+it formats what you've typed, even if you haven't saved yet.
+format-on-save is off until you ask for it.
 
-## install with lazy.nvim
+## install
 
-put this in your plugin specs:
+you need neovim 0.10 or newer, and `curl` + `sha256sum` to install the formatter.
+the download is currently for linux x86_64 GNU with glibc 2.34 or newer and
+normal system libraries, including `libgcc_s`. other platforms need a separately
+verified formatter build.
+
+with lazy.nvim, put this in your plugins:
 
 ```lua
 {
   'w0x7y/revofmt.nvim',
   main = 'revofmt',
   lazy = false,
-  opts = {},
+  opts = {
+    indent_width = 2, -- 1 through 8 spaces
+    line_width = 80,  -- 20 through 240 columns; a soft target
+  },
   build = function()
     local ok, err = require('revofmt').install({ async = false })
     if not ok then error(err) end
@@ -24,124 +38,160 @@ put this in your plugin specs:
 }
 ```
 
-sync your plugins, open a revo file, then try:
+those are the default widths. change them to whatever you prefer within the ranges.
+the build hook downloads the formatter and checks its pinned SHA-256.
+you don't need rust, zig, or a formatter checkout.
+
+install or sync your plugins, open a revo file, then:
 
 ```vim
 :RevoFormat
 ```
 
-you need neovim >=0.10. the downloadable formatter is for linux x86_64 GNU,
-with glibc >=2.34 and `libgcc_s`. other platforms need a separately verified
-formatter build.
-
-the install hook needs `curl` and `sha256sum`. it downloads the pinned formatter,
-checks its SHA-256, and keeps it in neovim's data directory. no rust or zig needed.
-it reuses a verified installation on later updates; a plugin update can select
-a newer pinned formatter.
-
-### other plugin managers
+<details>
+<summary>other plugin managers</summary>
 
 install `w0x7y/revofmt.nvim`, restart neovim, and run `:RevoFmtInstall` once.
-wait for the installed notification, then `:RevoFormat`. `setup()` is optional.
+wait for the installed notification, then run `:RevoFormat`.
+`setup()` is optional, the defaults work without it.
 
-or use native packages, with the default linux data directory:
+for neovim's native packages, with the default linux data directory:
 
 ```sh
 git clone https://github.com/w0x7y/revofmt.nvim.git \
   ~/.local/share/nvim/site/pack/revofmt/start/revofmt.nvim
 ```
 
-### coming from the local package?
+</details>
 
-replace the old `dir` spec or manual `runtimepath:prepend(...)` entry with the
-spec above. load one copy. remove the `executable` override to use the downloaded
-binary, and keep your layout and save preferences in `opts`.
+<details>
+<summary>moving from the old local package</summary>
+
+replace your old `dir` spec with the one above, or remove the manual
+`runtimepath:prepend(...)` entry. load one copy of the plugin.
+remove the old `executable` override to use the downloaded formatter.
+keep your width and save-formatting options in `opts`.
+
+</details>
+
+## options
+
+these are the defaults. with lazy.nvim, put your changes in `opts`.
+with another plugin manager, call `setup()`:
+
+```lua
+require('revofmt').setup({
+  indent_width = 2,       -- 1 through 8 spaces
+  line_width = 80,        -- 20 through 240 columns; a soft target
+  timeout_ms = 5000,
+  format_on_save = false, -- set true to format before saving
+  -- executable = '/absolute/path/to/revofmt',
+})
+```
+
+want it to format when you save? set `format_on_save = true`.
+if formatting fails, your buffer stays as it was and the save still goes through.
+
+<details>
+<summary>using your own formatter</summary>
+
+the plugin uses your `executable` override if set. otherwise it tries the
+downloaded binary, then `revofmt` on PATH.
+set `executable = 'revofmt'` to always use PATH.
+
+paths go straight to the process, without a shell. use an absolute path,
+not `~` or environment-variable substitutions.
+the installer never replaces a binary you configured yourself.
+
+</details>
 
 ## commands
 
 | command | what it does |
 | --- | --- |
 | `:RevoFormat` | format the whole unsaved buffer asynchronously |
-| `:RevoFmtInstall` | install the pinned formatter, or reuse verified bytes |
+| `:RevoFmtInstall` | install the pinned formatter, or reuse a verified install |
 | `:RevoFmtInstall!` | download and verify it again |
-| `:checkhealth revofmt` | show the executable and try a formatting smoke check |
+| `:checkhealth revofmt` | show the executable and try formatting a small example |
 
-`:RevoFmtInstall` is asynchronous. wait for it to finish before formatting.
-a failed download keeps your existing working formatter. setup, formatting and
-health checks never download anything.
+`:RevoFmtInstall` is asynchronous too. wait for the installed notification before
+formatting. a failed download leaves an existing working formatter alone.
+setup, formatting, and health checks never download anything.
 
-## settings
-
-these are the defaults. with lazy.nvim, put your changes in `opts`:
-
-```lua
-require('revofmt').setup({
-  -- executable = '/absolute/path/to/revofmt', -- optional override
-  indent_width = 2,       -- 1 to 8 spaces
-  line_width = 80,        -- 20 to 240 columns; a soft target
-  timeout_ms = 5000,
-  format_on_save = false, -- set true to format before saving
-})
-```
-
-if save formatting fails, your buffer stays unchanged and the save still happens.
-turn off other whitespace-cleanup hooks for revo if they'd change multiline
-literals or comments.
-
-executable selection goes: explicit setting, downloaded binary, then `revofmt`
-on PATH. set `executable = 'revofmt'` to always use PATH. use literal paths;
-`~`, environment variables and shell commands aren't expanded.
-
-for synchronous calls:
+from lua, if you need to wait for the result:
 
 ```lua
 require('revofmt').format({ bufnr = 0, async = false })
-require('revofmt').install({ async = false }) -- returns success, error
+require('revofmt').install({ async = false })
+-- both return success, error
 ```
 
 `:help revofmt` has the API and buffer requirements.
 
 <details>
-<summary>where the binary lives, and removing it</summary>
+<summary>where the download goes</summary>
 
-`stdpath('data')/revofmt/<formatter-version>/revofmt`.
-remove that version directory to uninstall it. removing the plugin doesn't
-remove the binary. explicitly configured binaries are never replaced.
+`stdpath('data')/revofmt/<formatter-version>/revofmt`
+
+a verified install is reused on plugin updates. a newer plugin version can select
+a newer pinned formatter release.
+
+remove that version directory to uninstall the formatter.
+removing the plugin through your plugin manager leaves the download there.
 
 </details>
 
-## what it preserves
+## what happens to your source
 
-[revofmt](https://github.com/w0x7y/revo-formatter) checks syntax, token/comment
-bytes and idempotence. the plugin keeps those bytes through neovim's buffer
-representation. it supports nonbinary UTF-8 unix and DOS buffers without a BOM.
-NUL output or line endings the buffer can't represent exactly are rejected.
+the [formatter](https://github.com/w0x7y/revo-formatter) checks syntax, preserves
+the exact token and comment bytes in their original order, and checks that
+formatting twice gives the same result. the plugin keeps your window views and
+changes one minimal region, so you can undo the edit.
 
-formatting has a five-second default deadline. canceled, failed, stale and
-superseded requests don't apply edits. successful edits preserve window views
-and replace one minimal line region. empty buffers stay untouched.
+if you type while it's formatting, the old result gets discarded.
+empty buffers stay untouched.
+
+keep unrelated whitespace-cleanup save hooks disabled for revo if they could
+change multiline literals or comments. use your existing language tools for
+highlighting, completion, and diagnostics.
+
+<details>
+<summary>buffer support and limits</summary>
+
+nonbinary UTF-8 unix and DOS buffers without a BOM are supported.
+output with NUL bytes or line endings your buffer can't represent exactly is
+rejected.
+
+formatting has a five-second default deadline. cancellation, process failure,
+excessive output, changed buffers, and superseded requests can't apply a result.
+changes to buffer options also discard the result.
 
 source and stdout are limited to 262,144 bytes, stderr to 65,536 bytes.
-the CLI also checks token and recursive budgets; see its
-[input policy](https://github.com/w0x7y/revo-formatter/blob/main/docs/verification/input-limits.md).
-use your existing language tooling for highlighting, completion and diagnostics.
+the CLI also limits tokens and recursive forms.
+see the [input policy](https://github.com/w0x7y/revo-formatter/blob/main/docs/verification/input-limits.md).
 
-## development
+</details>
 
-with a real formatter and python 3 installed:
+## developing
+
+with a real formatter, neovim, and python 3 installed:
 
 ```sh
 REVOFMT_BIN=/absolute/path/to/revofmt scripts/verify
 ```
 
-tests run without your personal neovim configuration. they cover real formatting,
-byte preservation, undo, deadlines, inherited pipes, stale results, save opt-in,
-install failures, checksums, executable selection and health reporting.
-[release notes and pinning](docs/releases.md) explain the downloaded binary.
+the tests don't load your neovim config. they cover real CLI formatting, byte
+preservation, undo, deadlines, inherited pipes, stale results, save opt-in,
+installation failures, checksums, executable selection, and health reporting.
 
 ## credits
 
-[MIT](LICENSE). the adapter started in `revo-formatter/editors/neovim` at commit
+licensed as [MIT](LICENSE).
+
+the adapter came from `revo-formatter/editors/neovim` at commit
 `312cd365bd6b25382754ccae46193df3d57ddd40`.
-the formatter uses [revo](https://github.com/if-not-nil/revo), also MIT;
+see [release notes and upstream notices](docs/releases.md) for the bundled
+formatter.
+
+the formatter uses [revo](https://github.com/if-not-nil/revo), also MIT.
 its unchanged notice is in [licenses/REVO-LICENSE.txt](licenses/REVO-LICENSE.txt).
