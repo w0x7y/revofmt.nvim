@@ -1,7 +1,7 @@
 -- Update only after publishing and verifying the corresponding formatter asset.
 return {
-  version = '0.1.0',
-  url = 'https://github.com/w0x7y/revo-formatter/releases/download/v0.1.0/revofmt-linux-x86_64-gnu',
-  sha256 = '37c4dc23857299aca5d4f1b98f838f5f1f7c8ac75e118bcf24390a5b99a654a1',
-  source_revision = '312cd365bd6b25382754ccae46193df3d57ddd40',
+  version = '0.1.1',
+  url = 'https://github.com/w0x7y/revo-formatter/releases/download/v0.1.1/revofmt-linux-x86_64-gnu',
+  sha256 = 'bcc31238dff6b533c10a23c71e110d6e3211bbedb22dcde4d13f19b986e8937c',
+  source_revision = '1eb68eb07e5968cccc8b25ccad1357b8344b78c1',
 }

@@ -84,8 +84,10 @@ binary, and keep your layout and save preferences in `opts`.
 | `:checkhealth revofmt` | show the executable and try a formatting smoke check |
 
 `:RevoFmtInstall` is asynchronous. wait for it to finish before formatting.
-a failed download keeps your existing working formatter. setup, formatting and
-health checks never download anything.
+a failed reinstall keeps the working formatter for the current pin. after a
+plugin update selects a new pin, run the install command again if its download
+fails; older managed versions are retained but are not selected automatically.
+setup, formatting and health checks never download anything.
 
 ## settings
 

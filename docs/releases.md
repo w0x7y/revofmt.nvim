@@ -7,11 +7,11 @@ It never builds or downloads the Zig toolchain. Downloads happen only through
 
 ## Current pin
 
-- Formatter version: `0.1.0`
-- Release tag: `v0.1.0`
-- Source commit: `312cd365bd6b25382754ccae46193df3d57ddd40`
+- Formatter version: `0.1.1`
+- Release tag: `v0.1.1`
+- Source commit: `1eb68eb07e5968cccc8b25ccad1357b8344b78c1`
 - Asset: `revofmt-linux-x86_64-gnu`
-- SHA-256: `37c4dc23857299aca5d4f1b98f838f5f1f7c8ac75e118bcf24390a5b99a654a1`
+- SHA-256: `bcc31238dff6b533c10a23c71e110d6e3211bbedb22dcde4d13f19b986e8937c`
 - Syntax revision: Revo `b571298b6fc95bc863548f118354c8d077792f6f`
 - Build compiler: exact Zig `0.17.0`, native Rust release build
 - Binary platform: Linux x86_64 GNU, glibc >=2.34, `libgcc_s`

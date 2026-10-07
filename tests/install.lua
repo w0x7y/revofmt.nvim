@@ -48,7 +48,7 @@ test('installs verified bytes and formats without an executable setting', functi
   local binary = manager()
   install(binary)
   assert(vim.fn.executable(binary.path()) == 1)
-  equal(vim.fn.system({ binary.path(), '--version' }):match('^revofmt %S+'), 'revofmt 0.1.0')
+  equal(vim.fn.system({ binary.path(), '--version' }):match('^revofmt %S+'), 'revofmt ' .. require('revofmt.release').version)
   format_current()
 end)
 test('repeated installation reuses a verified binary without downloading again', function()
