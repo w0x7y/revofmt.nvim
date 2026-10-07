@@ -1,3 +1,5 @@
+**This project is making heavily use of AI Agents, if you have a problem with that just don't use it. Thanks!**
+
 # `revofmt.nvim`, revo formatting in neovim
 
 open a `.rv` or `.revo` file, run `:RevoFormat`, get formatted code.
