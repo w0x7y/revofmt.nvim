@@ -122,7 +122,17 @@ function M.install(opts)
       fail(err)
     end
   end }, opts or {})
-  return binary.install(opts)
+  -- The public entry point owns reporting for immediate failures as well as
+  -- completed downloads. Callers do not need a separate failure notification.
+  local reported, on_done = false, opts.on_done
+  opts.on_done = function(ok, err)
+    if reported then return end
+    reported = true
+    if on_done then on_done(ok, err) end
+  end
+  local ok, err = binary.install(opts)
+  if not ok then opts.on_done(false, err) end
+  return ok, err
 end
 
 function M.setup(opts)
@@ -142,8 +152,7 @@ function M.setup(opts)
   vim.filetype.add({ extension = { rv = 'revo', revo = 'revo' } })
   vim.api.nvim_create_user_command('RevoFormat', function() M.format() end, { desc = 'Format the whole Revo buffer', force = true })
   vim.api.nvim_create_user_command('RevoFmtInstall', function(command)
-    local ok, err = M.install({ force = command.bang })
-    if not ok then fail(err) end
+    M.install({ force = command.bang })
   end, { desc = 'Install the pinned Revo formatter', bang = true, force = true })
   local group = vim.api.nvim_create_augroup('Revofmt', { clear = true })
   vim.api.nvim_create_autocmd({ 'BufRead', 'BufNewFile' }, {

@@ -155,6 +155,11 @@ with a real formatter and python 3 installed:
 REVOFMT_BIN=/absolute/path/to/revofmt scripts/verify
 ```
 
+For a formatter rebuilt against Revo `e94e6d8` or later, add
+`REVOFMT_CURRENT_SYNTAX=1` to verify range adjacency and invalid interpolation
+mode rejection without buffer edits. These checks are opt-in because the
+downloaded formatter pin still uses the earlier compiler.
+
 tests run without your personal neovim configuration. they cover real formatting,
 byte preservation, undo, deadlines, inherited pipes, stale results, save opt-in,
 install failures, checksums, executable selection and health reporting.

@@ -5,7 +5,13 @@ local original_path, original_uname = vim.env.PATH, vim.uv.os_uname
 local sandbox = vim.fn.tempname() .. ' installation; direct'
 vim.fn.mkdir(sandbox .. '/tools', 'p')
 assert(vim.uv.fs_symlink(root .. '/tests/downloader.py', sandbox .. '/tools/curl'))
-vim.env.PATH = sandbox .. '/tools:' .. original_path
+-- Missing-formatter tests must not discover the user's installed revofmt.
+for _, tool in ipairs({ 'python3', 'sha256sum' }) do
+  local executable = vim.fn.exepath(tool)
+  assert(executable ~= '', 'installation tests require ' .. tool)
+  assert(vim.uv.fs_symlink(executable, sandbox .. '/tools/' .. tool))
+end
+vim.env.PATH = sandbox .. '/tools'
 vim.notify = function() end
 local count, failed = 0, 0
 local function equal(a, b) assert(vim.deep_equal(a, b), vim.inspect(a) .. ' ~= ' .. vim.inspect(b)) end
@@ -43,6 +49,39 @@ end
 test('registers the explicit install command', function()
   require('revofmt').setup()
   assert(vim.fn.exists(':RevoFmtInstall') == 2, 'install command is missing')
+end)
+test('install command reports subprocess start failures once and recovers', function()
+  local binary = manager()
+  local notifications = {}
+  local original_system, original_notify = vim.system, vim.notify
+  vim.notify = function(message) notifications[#notifications + 1] = message end
+  vim.system = function(args, ...)
+    if args[1] == 'curl' then error('controlled download spawn failure') end
+    return original_system(args, ...)
+  end
+  local ok, err = pcall(function()
+    vim.cmd('RevoFmtInstall')
+    equal(#notifications, 1)
+    assert(notifications[1]:find('controlled download spawn failure', 1, true))
+    assert(vim.fn.filereadable(binary.path()) == 0)
+    vim.system = original_system
+    install(binary)
+    format_current()
+  end)
+  vim.system, vim.notify = original_system, original_notify
+  assert(ok, err)
+end)
+test('public install completes immediate failures through its callback once', function()
+  local binary = manager()
+  vim.uv.os_uname = function() return { sysname = 'Darwin', machine = 'arm64' } end
+  local calls, success, reason = 0, nil, nil
+  local ok, err = require('revofmt').install({ on_done = function(result, detail)
+    calls, success, reason = calls + 1, result, detail
+  end })
+  assert(not ok and err:find('Linux x86_64', 1, true), tostring(err))
+  equal(calls, 1); equal(success, false); equal(reason, err)
+  assert(vim.fn.filereadable(binary.path()) == 0)
+  assert(vim.fn.filereadable(vim.env.REVOFMT_DOWNLOAD_LOG) == 0)
 end)
 test('installs verified bytes and formats without an executable setting', function()
   local binary = manager()

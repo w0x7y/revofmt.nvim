@@ -40,7 +40,8 @@ require('revofmt').format({ bufnr = 0, async = false })
 
 require('revofmt').install({ async = false })
     Returns success, error. Default installation is asynchronous. Optional
-    on_done(success, error) receives completion; force=true downloads again.
+    on_done(success, error) receives completion exactly once, including an
+    immediate failure to start. force=true downloads again.
 
 require('revofmt').executable()
     Returns the selected executable, or nil and installation guidance.

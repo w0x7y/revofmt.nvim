@@ -55,6 +55,36 @@ test('formats the current unsaved source through the real CLI', function()
   equal(bytes(buf), 'let x = 1\n')
   equal(vim.api.nvim_buf_get_changedtick(buf), tick)
 end)
+test('preserves supported interpolation modes through the real CLI', function()
+  -- Revo Parser.zig tests cover :v, :?, :p and the lone :d atom.
+  local fmt = plugin()
+  local buf = buffer({ 'let t=1', 'print("#{t:v} #{t:?} #{t:p} #{:d}")' })
+  local expected = 'let t = 1\nprint("#{t:v} #{t:?} #{t:p} #{:d}")\n'
+  format(fmt, buf)
+  equal(bytes(buf), expected)
+  format(fmt, buf)
+  equal(bytes(buf), expected)
+end)
+if vim.env.REVOFMT_CURRENT_SYNTAX == '1' then
+  test('current compiler syntax rejection leaves the buffer untouched', function()
+    -- Revo 71115de requires range-start/step adjacency; e94e6d8 rejects :d modes.
+    for _, source in ipairs({
+      { 'for i in 0 ..5 do', 'print(i)', 'end' },
+      { 'for i in 0..2 ..10 do', 'print(i)', 'end' },
+      { 'let t=1', 'print("#{t:d}")' },
+    }) do
+      local fmt = plugin()
+      local buf = buffer(source)
+      local before, tick = bytes(buf), vim.api.nvim_buf_get_changedtick(buf)
+      assert(not fmt.format({ bufnr = buf, async = false }))
+      equal(bytes(buf), before)
+      equal(vim.api.nvim_buf_get_changedtick(buf), tick)
+      assert(#errors > 0, 'syntax rejection must report an error')
+    end
+  end)
+else
+  print('SKIP current compiler syntax rejection: set REVOFMT_CURRENT_SYNTAX=1 for a rebuilt formatter')
+end
 test('recognizes both suffixes and registers one command after repeated setup', function()
   plugin(); plugin()
   for _, suffix in ipairs({ 'rv', 'revo' }) do
