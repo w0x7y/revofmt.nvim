@@ -26,4 +26,4 @@ jobs:
           nvim --headless -u NONE -i NONE -n -l tests/download.lua "$RUNNER_TEMP/revofmt"
           echo "REVOFMT_BIN=$RUNNER_TEMP/revofmt/revofmt" >> "$GITHUB_ENV"
       - name: Verify adapter and installation
-        run: scripts/verify
+        run: REVOFMT_CURRENT_SYNTAX=1 scripts/verify
