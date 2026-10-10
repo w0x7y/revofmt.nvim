@@ -110,7 +110,10 @@ function M.format(opts)
   local executable, resolve_error = M.executable()
   if not executable then pending[buf] = nil; return fail(resolve_error) end
   local async = opts.async ~= false
-  local process_config = vim.tbl_extend('force', config, { executable = executable, path = file_path(buf) })
+  local process_config = vim.tbl_extend('force', config, { executable = executable })
+  -- setup keeps unknown keys, so a user-supplied path must not survive. A nil
+  -- entry in tbl_extend would not remove it; assigning nil does.
+  process_config.path = file_path(buf)
   local process, err = transport.start(process_config, source, async and function(result)
     vim.schedule(function() finish(result) end)
   end or nil)

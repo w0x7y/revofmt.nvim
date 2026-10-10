@@ -454,6 +454,27 @@ test('buffers without a file path never discover a project revofmt.toml', functi
   vim.fn.delete(dir, 'rf')
   assert(ok, err)
 end)
+test('a path key passed to setup is never sent for a buffer without a file path', function()
+  -- setup keeps unknown keys, so the adapter must not forward a user-supplied path.
+  local tab, space = project('indent_style = "tab"'), project('indent_style = "space"')
+  local ok, err = pcall(function()
+    local fmt = plugin({ indent_style = 'space', path = tab .. '/a.rv' })
+    local special = buffer({ 'do', 'foo()', 'end' }, { buftype = 'nofile' })
+    vim.api.nvim_buf_set_name(special, tab .. '/b.rv')
+    local unnamed = buffer({ 'do', 'foo()', 'end' })
+    for _, buf in ipairs({ special, unnamed }) do
+      format(fmt, buf)
+      equal(bytes(buf), 'do\n  foo()\nend\n')
+    end
+    -- A real file buffer still uses its own path, not the one given to setup.
+    local named = buffer({ 'do', 'foo()', 'end' })
+    vim.api.nvim_buf_set_name(named, space .. '/c.rv')
+    format(fmt, named)
+    equal(bytes(named), 'do\n  foo()\nend\n')
+  end)
+  vim.fn.delete(tab, 'rf'); vim.fn.delete(space, 'rf')
+  assert(ok, err)
+end)
 test('URI-style buffer names are never sent as a file path', function()
   local dir = project('indent_style = "tab"')
   -- A relative reading of the name would climb through the cwd to this toml.
@@ -462,7 +483,8 @@ test('URI-style buffer names are never sent as a file path', function()
     for _, name in ipairs({ 'scp://example.invalid/proj/a.rv', 'fugitive:///repo/.git//abc/a.rv' }) do
       local buf = buffer({ 'do', 'foo()', 'end' })
       vim.api.nvim_buf_set_name(buf, name)
-      -- The real CLI would find the cwd's toml; the fixture rejects any path.
+      -- The real CLI would apply the cwd's toml if a path were sent, so this run proves it is not.
+      -- The fixture below accepts either argv shape and only exercises the controlled transport.
       local fmt = plugin({ indent_style = 'space' })
       format(fmt, buf)
       equal(bytes(buf), 'do\n  foo()\nend\n')
