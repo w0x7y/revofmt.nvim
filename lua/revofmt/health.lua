@@ -11,7 +11,8 @@ function M.check()
   else
     vim.health.info('Formatter: ' .. executable)
     local process, start_error = require('revofmt.transport').start({
-      executable = executable, indent_width = 2, line_width = 80, timeout_ms = 2000,
+      executable = executable, indent_width = 2, line_width = 80, indent_style = 'space',
+      max_blank_lines = 1, timeout_ms = 2000,
     }, 'let x=1')
     local result = process and process.wait()
     if result and not result.error and result.code == 0 and result.stdout == 'let x = 1\n' then

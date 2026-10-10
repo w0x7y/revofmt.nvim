@@ -6,7 +6,22 @@ import subprocess
 import sys
 import time
 
-if sys.argv[1:] != ["--indent-width", "2", "--line-width", "80", "-"]:
+# The adapter contract: --prefer-config first, then an optional absolute
+# --stdin-filepath, then every layout setting in this exact order.
+arguments = sys.argv[1:]
+if arguments[:1] != ["--prefer-config"]:
+    sys.stderr.write("unexpected formatter arguments")
+    sys.exit(2)
+arguments = arguments[1:]
+if arguments[:1] == ["--stdin-filepath"]:
+    if len(arguments) < 2 or not os.path.isabs(arguments[1]):
+        sys.stderr.write("unexpected formatter arguments")
+        sys.exit(2)
+    arguments = arguments[2:]
+if arguments != [
+    "--indent-width", "2", "--line-width", "80",
+    "--indent-style", "space", "--max-blank-lines", "1", "-",
+]:
     sys.stderr.write("unexpected formatter arguments")
     sys.exit(2)
 source = sys.stdin.buffer.read()

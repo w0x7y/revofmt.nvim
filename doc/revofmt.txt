@@ -5,6 +5,8 @@ INSTALLATION                                          *revofmt-install*
 Install w0x7y/revofmt.nvim with a plugin manager. Run :RevoFmtInstall
 once to download the pinned formatter. Linux x86_64 GNU with glibc >=2.34
 is the current binary platform. Installation requires curl and sha256sum; formatting does not.
+The adapter requires revofmt >=0.2.0. An older executable rejects the
+--prefer-config argument and formatting reports its error.
 
 COMMANDS                                              *revofmt-commands*
 
@@ -17,14 +19,23 @@ CONFIGURATION                                         *revofmt-setup*
 
 Defaults: >lua
     require('revofmt').setup({
-      indent_width = 2,
-      line_width = 80,
+      indent_width = 2,        -- 1 to 8 columns per indent level
+      line_width = 80,         -- 20 to 240 columns; a soft target
+      indent_style = 'space',  -- 'space' or 'tab'
+      max_blank_lines = 1,     -- 0 to 8 consecutive blank lines
       timeout_ms = 5000,
       format_on_save = false,
     })
 <
 An optional executable setting overrides managed installation and PATH lookup.
 It is a command name or literal executable path, never a shell command.
+
+A project revofmt.toml overrides these layout settings for files beneath it.
+The plugin passes the buffer's file path to the formatter, which looks for the
+config in that file's directory and its parents; the file need not exist yet.
+Buffers without a file path, such as scratch buffers, use the settings above.
+Keys the config leaves out use the formatter's built-in defaults. With
+indent_style = 'tab', indent_width is the tab's display width when fitting lines.
 
 Save formatting is opt-in. CLI failures leave the buffer unchanged. Keep
 independent whitespace-cleanup hooks disabled for Revo opaque literals/comments.

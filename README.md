@@ -9,9 +9,10 @@ it works on your unsaved buffer. format-on-save is off until you ask for it.
 
 ## install with lazy.nvim
 
-you need neovim >=0.10. the downloadable formatter is for linux x86_64 GNU,
-with glibc >=2.34 and `libgcc_s`. other platforms need a separately verified
-formatter build.
+you need neovim >=0.10 and revofmt >=0.2.0. the downloadable formatter is for
+linux x86_64 GNU, with glibc >=2.34 and `libgcc_s`. other platforms need a
+separately verified formatter build. an older `revofmt` rejects the new
+arguments, so formatting reports an error until you update it.
 
 installation needs `curl` and `sha256sum`.
 
@@ -23,8 +24,10 @@ put this in your plugin specs:
   main = 'revofmt',
   lazy = false,
   opts = {
-    indent_width = 2, -- 1 to 8 spaces
-    line_width = 80,  -- 20 to 240 columns; a soft target
+    indent_width = 2,       -- 1 to 8 columns per indent level
+    line_width = 80,        -- 20 to 240 columns; a soft target
+    indent_style = 'space', -- 'space' or 'tab'
+    max_blank_lines = 1,    -- 0 to 8 consecutive blank lines
   },
   build = function()
     local ok, err = require('revofmt').install({ async = false })
@@ -97,12 +100,26 @@ with another plugin manager, call `setup()`:
 ```lua
 require('revofmt').setup({
   -- executable = '/absolute/path/to/revofmt', -- optional override
-  indent_width = 2,       -- 1 to 8 spaces
+  indent_width = 2,       -- 1 to 8 columns per indent level
   line_width = 80,        -- 20 to 240 columns; a soft target
+  indent_style = 'space', -- 'space' or 'tab'
+  max_blank_lines = 1,    -- 0 to 8 consecutive blank lines
   timeout_ms = 5000,
   format_on_save = false, -- set true to format before saving
 })
 ```
+
+a project `revofmt.toml` overrides these layout settings for files beneath it.
+the plugin passes the buffer's file path to the formatter, which looks for the
+config in that file's directory and its parents. the file itself doesn't need to
+exist yet. buffers without a file path, such as scratch buffers, always use the
+settings above. keys the config leaves out use the formatter's built-in defaults,
+not your plugin settings. see the
+[formatter's configuration guide](https://github.com/w0x7y/revo-formatter/blob/main/docs/formatter.md#configuration)
+for the file format.
+
+with `indent_style = 'tab'`, `indent_width` is the tab's display width when
+fitting lines.
 
 if save formatting fails, your buffer stays unchanged and the save still happens.
 turn off other whitespace-cleanup hooks for revo if they'd change multiline
@@ -155,7 +172,7 @@ with a real formatter and python 3 installed:
 REVOFMT_BIN=/absolute/path/to/revofmt scripts/verify
 ```
 
-For the managed `v0.1.2` formatter or a source build using Revo `e94e6d8` or
+For the managed `v0.2.0` formatter or a source build using Revo `e94e6d8` or
 later, add `REVOFMT_CURRENT_SYNTAX=1` to verify range adjacency and invalid
 interpolation mode rejection without buffer edits. CI enables these checks with
 the managed download. Leave the option unset when testing an older formatter.

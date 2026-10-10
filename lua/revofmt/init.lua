@@ -3,7 +3,7 @@ local transport = require('revofmt.transport')
 local binary = require('revofmt.binary')
 local M = {}
 local defaults = {
-  indent_width = 2, line_width = 80,
+  indent_width = 2, line_width = 80, indent_style = 'space', max_blank_lines = 1,
   timeout_ms = 5000, format_on_save = false,
 }
 local config = vim.deepcopy(defaults)
@@ -21,6 +21,14 @@ local function options(buf)
   local values = {}
   for _, name in ipairs(option_names) do values[name] = vim.bo[buf][name] end
   return values
+end
+
+-- Only an ordinary named buffer is backed by a real file whose directory can
+-- hold a project revofmt.toml. The file itself need not exist yet.
+local function file_path(buf)
+  local name = vim.api.nvim_buf_get_name(buf)
+  if vim.bo[buf].buftype ~= '' or name == '' then return nil end
+  return vim.fn.fnamemodify(name, ':p')
 end
 
 local function cancel(buf)
@@ -100,7 +108,7 @@ function M.format(opts)
   local executable, resolve_error = M.executable()
   if not executable then pending[buf] = nil; return fail(resolve_error) end
   local async = opts.async ~= false
-  local process_config = vim.tbl_extend('force', config, { executable = executable })
+  local process_config = vim.tbl_extend('force', config, { executable = executable, path = file_path(buf) })
   local process, err = transport.start(process_config, source, async and function(result)
     vim.schedule(function() finish(result) end)
   end or nil)
@@ -138,11 +146,16 @@ end
 function M.setup(opts)
   if vim.fn.has('nvim-0.10') == 0 then error('revofmt requires Neovim >=0.10') end
   local next_config = vim.tbl_extend('force', defaults, opts or {})
-  for name, limits in pairs({ indent_width = { 1, 8 }, line_width = { 20, 240 }, timeout_ms = { 1, 2147483647 } }) do
+  for name, limits in pairs({
+    indent_width = { 1, 8 }, line_width = { 20, 240 }, max_blank_lines = { 0, 8 }, timeout_ms = { 1, 2147483647 },
+  }) do
     local value = next_config[name]
     if type(value) ~= 'number' or value % 1 ~= 0 or value < limits[1] or value > limits[2] then
       error('revofmt: invalid ' .. name)
     end
+  end
+  if next_config.indent_style ~= 'space' and next_config.indent_style ~= 'tab' then
+    error('revofmt: invalid indent_style')
   end
   if next_config.executable ~= nil and (type(next_config.executable) ~= 'string' or next_config.executable == '' or next_config.executable:find('\0', 1, true)) then
     error('revofmt: executable must be a nonempty path or command name')

@@ -294,7 +294,8 @@ for _, canceled in ipairs({ false, true }) do
     inherited_pipes(function(_, cleaned_up, pid_path)
       local calls, result = 0, nil
       local operation, err = require('revofmt.transport').start({
-        executable = fixture, indent_width = 2, line_width = 80, timeout_ms = 150,
+        executable = fixture, indent_width = 2, line_width = 80, indent_style = 'space',
+        max_blank_lines = 1, timeout_ms = 150,
       }, 'let x=1', function(value) calls = calls + 1; result = value end)
       assert(operation, err)
       if canceled then
@@ -363,7 +364,9 @@ end)
 test('validates options without replacing a working setup', function()
   local fmt = plugin()
   for _, opts in ipairs({ { indent_width = 0 }, { indent_width = 9 }, { line_width = 19 },
-    { line_width = 241 }, { timeout_ms = 0 }, { executable = '' }, { format_on_save = 'yes' } }) do
+    { line_width = 241 }, { timeout_ms = 0 }, { executable = '' }, { format_on_save = 'yes' },
+    { indent_style = 'tabs' }, { max_blank_lines = -1 }, { max_blank_lines = 9 },
+    { max_blank_lines = 1.5 } }) do
     assert(not pcall(fmt.setup, opts))
   end
   local buf = buffer({ 'let x=1' }); format(fmt, buf); equal(bytes(buf), 'let x = 1\n')
@@ -408,6 +411,56 @@ test('passes configured layout arguments to the real CLI', function()
   local buf = buffer({ 'print(first_argument, second_argument)' })
   format(fmt, buf)
   equal(bytes(buf), 'print(\n    first_argument,\n    second_argument\n)\n')
+end)
+test('passes indent style and blank-line settings to the real CLI', function()
+  local fmt = plugin({ indent_style = 'tab', max_blank_lines = 0 })
+  local buf = buffer({ 'do', 'foo()', '', '', 'bar()', 'end' })
+  format(fmt, buf)
+  equal(bytes(buf), 'do\n\tfoo()\n\tbar()\nend\n')
+end)
+-- A project file is found from the buffer's real path, which need not exist.
+local function project(contents)
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir, 'p')
+  vim.fn.writefile({ contents }, dir .. '/revofmt.toml')
+  return dir
+end
+test('a project revofmt.toml overrides adapter layout settings', function()
+  local dir = project('indent_style = "tab"')
+  local ok, err = pcall(function()
+    local buf = buffer({ 'do', 'foo()', 'end' })
+    vim.api.nvim_buf_set_name(buf, dir .. '/a.rv')
+    local fmt = plugin({ indent_style = 'space' })
+    format(fmt, buf)
+    equal(bytes(buf), 'do\n\tfoo()\nend\n')
+    equal(vim.fn.filereadable(dir .. '/a.rv'), 0)
+  end)
+  vim.fn.delete(dir, 'rf')
+  assert(ok, err)
+end)
+test('buffers without a file path never discover a project revofmt.toml', function()
+  local dir = project('indent_style = "tab"')
+  local ok, err = pcall(function()
+    -- Only ordinary buffers with names are backed by a real file.
+    local special = buffer({ 'do', 'foo()', 'end' }, { buftype = 'nofile' })
+    vim.api.nvim_buf_set_name(special, dir .. '/a.rv')
+    local unnamed = buffer({ 'do', 'foo()', 'end' })
+    local fmt = plugin({ indent_style = 'space' })
+    for _, buf in ipairs({ special, unnamed }) do
+      format(fmt, buf)
+      equal(bytes(buf), 'do\n  foo()\nend\n')
+    end
+  end)
+  vim.fn.delete(dir, 'rf')
+  assert(ok, err)
+end)
+test('builds the global argument order with an optional file path', function()
+  local arguments = require('revofmt.transport').arguments
+  local config = { indent_width = 4, line_width = 100, indent_style = 'tab', max_blank_lines = 3 }
+  local tail = { '--indent-width', '4', '--line-width', '100', '--indent-style', 'tab', '--max-blank-lines', '3', '-' }
+  equal(arguments(config), vim.list_extend({ '--prefer-config' }, tail))
+  config.path = '/work/project/a.rv'
+  equal(arguments(config), vim.list_extend({ '--prefer-config', '--stdin-filepath', '/work/project/a.rv' }, tail))
 end)
 test('executes a path containing spaces and shell punctuation directly', function()
   local path = vim.fn.tempname() .. ' formatter; direct'

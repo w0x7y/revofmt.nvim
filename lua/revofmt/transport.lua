@@ -2,6 +2,20 @@ local M = {}
 -- Match the pinned CLI's admission limit; stderr is diagnostic text only.
 local stdout_limit, stderr_limit = 262144, 65536
 
+-- Global argument order. config.path is the absolute path of the real file
+-- backing the source, or nil; it lets the CLI find the project's revofmt.toml.
+function M.arguments(config)
+  local args = { '--prefer-config' }
+  if config.path then vim.list_extend(args, { '--stdin-filepath', config.path }) end
+  return vim.list_extend(args, {
+    '--indent-width', tostring(config.indent_width),
+    '--line-width', tostring(config.line_width),
+    '--indent-style', config.indent_style,
+    '--max-blank-lines', tostring(config.max_blank_lines),
+    '-',
+  })
+end
+
 function M.start(config, source, on_exit)
   local stdout, stderr, sizes = {}, {}, { stdout = 0, stderr = 0 }
   local pipes, eof = {}, {}
@@ -57,7 +71,7 @@ function M.start(config, source, on_exit)
     end
     timer = assert(vim.uv.new_timer())
     return vim.uv.spawn(config.executable, {
-      args = { '--indent-width', tostring(config.indent_width), '--line-width', tostring(config.line_width), '-' },
+      args = M.arguments(config),
       stdio = { pipes.stdin, pipes.stdout, pipes.stderr },
     }, function(code, signal)
       raw = { code = code, signal = signal }
