@@ -33,7 +33,8 @@ It is a command name or literal executable path, never a shell command.
 A project revofmt.toml overrides these layout settings for files beneath it.
 The plugin passes the buffer's file path to the formatter, which looks for the
 config in that file's directory and its parents; the file need not exist yet.
-Buffers without a file path, such as scratch buffers, use the settings above.
+Buffers without a file path, such as scratch buffers or URIs like
+scp://host/a.rv and fugitive:///..., use the settings above.
 Keys the config leaves out use the formatter's built-in defaults. With
 indent_style = 'tab', indent_width is the tab's display width when fitting lines.
 

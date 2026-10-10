@@ -24,10 +24,12 @@ local function options(buf)
 end
 
 -- Only an ordinary named buffer is backed by a real file whose directory can
--- hold a project revofmt.toml. The file itself need not exist yet.
+-- hold a project revofmt.toml. The file itself need not exist yet. URI names
+-- such as scp:// or fugitive:/// are not file paths; the CLI would read them
+-- relative to the cwd and might apply an unrelated project's config.
 local function file_path(buf)
   local name = vim.api.nvim_buf_get_name(buf)
-  if vim.bo[buf].buftype ~= '' or name == '' then return nil end
+  if vim.bo[buf].buftype ~= '' or name == '' or name:match('^%a[%w+.-]*://') then return nil end
   return vim.fn.fnamemodify(name, ':p')
 end
 

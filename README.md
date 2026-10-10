@@ -112,9 +112,10 @@ require('revofmt').setup({
 a project `revofmt.toml` overrides these layout settings for files beneath it.
 the plugin passes the buffer's file path to the formatter, which looks for the
 config in that file's directory and its parents. the file itself doesn't need to
-exist yet. buffers without a file path, such as scratch buffers, always use the
-settings above. keys the config leaves out use the formatter's built-in defaults,
-not your plugin settings. see the
+exist yet. buffers without a file path, such as scratch buffers or urls like
+`scp://host/a.rv` and `fugitive:///...`, always use the settings above. keys
+the config leaves out use the formatter's built-in defaults, not your plugin
+settings. see the
 [formatter's configuration guide](https://github.com/w0x7y/revo-formatter/blob/main/docs/formatter.md#configuration)
 for the file format.
 

@@ -454,6 +454,29 @@ test('buffers without a file path never discover a project revofmt.toml', functi
   vim.fn.delete(dir, 'rf')
   assert(ok, err)
 end)
+test('URI-style buffer names are never sent as a file path', function()
+  local dir = project('indent_style = "tab"')
+  -- A relative reading of the name would climb through the cwd to this toml.
+  local previous = vim.fn.chdir(dir)
+  local ok, err = pcall(function()
+    for _, name in ipairs({ 'scp://example.invalid/proj/a.rv', 'fugitive:///repo/.git//abc/a.rv' }) do
+      local buf = buffer({ 'do', 'foo()', 'end' })
+      vim.api.nvim_buf_set_name(buf, name)
+      -- The real CLI would find the cwd's toml; the fixture rejects any path.
+      local fmt = plugin({ indent_style = 'space' })
+      format(fmt, buf)
+      equal(bytes(buf), 'do\n  foo()\nend\n')
+      fmt = controlled('delay')
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, { 'let x=1' })
+      vim.bo[buf].endofline = false
+      format(fmt, buf)
+      equal(bytes(buf), 'let x = 1\n')
+    end
+  end)
+  vim.fn.chdir(previous)
+  vim.fn.delete(dir, 'rf')
+  assert(ok, err)
+end)
 test('builds the global argument order with an optional file path', function()
   local arguments = require('revofmt.transport').arguments
   local config = { indent_width = 4, line_width = 100, indent_style = 'tab', max_blank_lines = 3 }
